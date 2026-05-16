@@ -38,7 +38,7 @@ OUTLIER_THRESHOLD = 0.05
 
 
 # 1) LOAD DATA AND COMPUTE LOG RETURNS -------------------------------------
-def load_log_returns(path: Path) -> pd.Series | None:
+def load_log_returns(path: Path):
     """Zwraca logarytmiczne stopy zwrotu z pliku stooq (.txt). None gdy pusty/uszkodzony."""
     if path.stat().st_size == 0:
         return None
@@ -65,19 +65,29 @@ for f in sorted(DATA_DIR.iterdir()):
         other_returns.append(s.dropna())
 
 returns_df = pd.concat([tauron_returns] + other_returns, axis=1)
-# Wymagamy minimalnej liczby wspolnych obserwacji, by korelacja byla sensowna.
+# Odsiew spolek z < 250 wspolnych obserwacji z TAURON-em
 min_obs = 250
-returns_df = returns_df.dropna(axis=1, thresh=min_obs).dropna()
-print("returns_df shape:", returns_df.shape)
+returns_df = returns_df.dropna(axis=1, thresh=min_obs)
+print("returns_df shape (before row dropna):", returns_df.shape)
 
 
 # 2) SELECT VARIABLES BY CORRELATION ---------------------------------------
-corr_with_tauron = returns_df.corr()["TAURON"].abs().sort_values(ascending=False)
+# Korelacje parami (min_periods), zeby nie tracic wierszy przy 400+ kolumnach.
+corr_with_tauron = (
+    returns_df.corr(min_periods=100)["TAURON"]
+    .abs()
+    .sort_values(ascending=False)
+    .dropna()
+)
 print("\nRanking korelacji z TAURON-em (top 8):")
 print(corr_with_tauron.head(8))
 
 selected_vars = corr_with_tauron.drop("TAURON").index[:TOP_N].tolist()
 print("\nWybrane zmienne objasniajace:", selected_vars)
+
+# Po wyborze zmiennych zawezamy do 5 kolumn i usuwamy braki
+returns_df = returns_df[["TAURON"] + selected_vars].dropna()
+print("returns_df shape (5 cols, no NaN):", returns_df.shape)
 
 
 # 3) AUGMENTED DICKEY-FULLER (ADF) TEST ------------------------------------
