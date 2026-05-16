@@ -37,11 +37,13 @@ ponad 420 tickerow w katalogu `data/`.
 ## Uruchomienie
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate           # Windows: .venv\Scripts\activate
+cd ~/Downloads/tauron-wse-regression
+
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
-python tauron_regression.py
+python3 tauron_regression.py
 # albo:
 jupyter notebook tauron_regression.ipynb
 ```
